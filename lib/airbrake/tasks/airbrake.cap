@@ -5,7 +5,7 @@ namespace :airbrake do
   DESC
   task :deploy do
     # update scm state to get the repository information
-    invoke "#{scm}:update"
+    invoke "#{scm}:update" unless scm_plugin_installed?
     on roles(:all) do
       within release_path do
         # XXX: Invoking deploy:set_rails_env would set :rails_env to proper
