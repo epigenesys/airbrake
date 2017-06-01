@@ -11,20 +11,33 @@ module Airbrake
     end
 
     initializer "airbrake.middleware" do |app|
+      # Since Rails 3.2 the ActionDispatch::DebugExceptions middleware is
+      # responsible for logging exceptions and showing a debugging page in
+      # case the request is local. We want to insert our middleware after
+      # DebugExceptions, so we don't notify Airbrake about local requests.
 
-      rails_4_or_less = ::Rails::VERSION::MAJOR < 5
-
-      middleware = if defined?(ActionDispatch::DebugExceptions)
-        # Rails >= 3.2.0
-        rails_4_or_less ? "ActionDispatch::DebugExceptions" : ActionDispatch::DebugExceptions
+      if ::Rails.version.start_with?('5.')
+        # Avoid the warning about deprecated strings.
+        # Insert after DebugExceptions, since ConnectionManagement doesn't
+        # exist in Rails 5 anymore.
+        app.config.middleware.insert_after(
+          ActionDispatch::DebugExceptions,
+          Airbrake::Rails::Middleware
+        )
+      elsif defined?(ActiveRecord)
+        # Insert after ConnectionManagement to avoid DB connection leakage:
+        # https://github.com/airbrake/airbrake/pull/568
+        app.config.middleware.insert_after(
+          ActiveRecord::ConnectionAdapters::ConnectionManagement,
+          'Airbrake::Rails::Middleware'
+        )
       else
-        # Rails < 3.2.0
-        "ActionDispatch::ShowExceptions"
+        # Insert after DebugExceptions for apps without ActiveRecord.
+        app.config.middleware.insert_after(
+          ActionDispatch::DebugExceptions,
+          'Airbrake::Rails::Middleware'
+        )
       end
-
-      app.config.middleware.insert_after middleware, (rails_4_or_less ? "Airbrake::Rails::Middleware" : Airbrake::Rails::Middleware)
-
-      app.config.middleware.insert 0, (rails_4_or_less ? "Airbrake::UserInformer" : Airbrake::UserInformer)
     end
 
     config.after_initialize do
