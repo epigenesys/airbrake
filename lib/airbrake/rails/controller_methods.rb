@@ -19,11 +19,11 @@ module Airbrake
       private
 
       def to_hash(params)
-        # Rails <= 4
-        return params.to_hash if params.respond_to?(:to_hash)
-
         # Rails >= 5
-        params.to_unsafe_h
+        return params.to_unsafe_h if params.respond_to?(:to_unsafe_h)
+        
+        # Rails <= 4
+        params.to_hash
       end
 
       # This method should be used for sending manual notifications while you are still

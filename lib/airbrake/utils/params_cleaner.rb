@@ -120,6 +120,10 @@ module Airbrake
             data.inject({}) do |result, (key, value)|
               result.merge!(key => clean_unserializable_data(value, stack + [data.object_id]))
             end
+          elsif data.respond_to?(:to_unsafe_h)
+            data.to_unsafe_h.inject({}) do |result, (key, value)|
+              result.merge!(key => clean_unserializable_data(value, stack + [data.object_id]))
+            end
           elsif data.respond_to?(:to_hash)
             data.to_hash.inject({}) do |result, (key, value)|
               result.merge!(key => clean_unserializable_data(value, stack + [data.object_id]))
