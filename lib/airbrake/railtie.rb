@@ -16,7 +16,7 @@ module Airbrake
       # case the request is local. We want to insert our middleware after
       # DebugExceptions, so we don't notify Airbrake about local requests.
 
-      if ::Rails.version.start_with?('5.')
+      if ::Rails.version.to_i >= 5
         # Avoid the warning about deprecated strings.
         # Insert after DebugExceptions, since ConnectionManagement doesn't
         # exist in Rails 5 anymore.
@@ -24,11 +24,11 @@ module Airbrake
           ActionDispatch::DebugExceptions,
           Airbrake::Rails::Middleware
         )
-      elsif defined?(ActiveRecord)
+      elsif defined?(::ActiveRecord::ConnectionAdapters::ConnectionManagement)
         # Insert after ConnectionManagement to avoid DB connection leakage:
         # https://github.com/airbrake/airbrake/pull/568
         app.config.middleware.insert_after(
-          ActiveRecord::ConnectionAdapters::ConnectionManagement,
+          ::ActiveRecord::ConnectionAdapters::ConnectionManagement,
           'Airbrake::Rails::Middleware'
         )
       else
